@@ -1,37 +1,33 @@
-# webui_example built from sheep_example
+# Simple webUI example built on the Ulfius HTTP Framework
 
-Run a simple file webserver and a small REST API that listen on port 7437, and implement a file upload service.
+Runs a simple file webserver and a small REST API.
 
-## Compile and run
-
-```bash
-$ make test
-```
 
 ## Usage:
 
-### Sheep counter
+### WebUI
 
-Open in your browser the url [http://localhost:7437/static/index.html](http://localhost:7437/static/index.html), it's a jquery application that will count and display sheeps to help you fall asleep. There click on the buttons available to call the underline API.
+This is meant to run on an embedded platform, so jansson json support was replaced with cJSON.
 
-The API endpoints are the following:
+Open in your browser the url [http://localhost/info](http://localhost/info), and a webUI should appear.  You will have to replace localhost with the valid ip address if connecting remotely.
 
-- `POST http://localhost:7437/sheep`: Initialise the counter with the specified `nbsheep` value provided in the json body (default 0) and return the new `nbsheep` value in the response as a json. The JSON body must be a single numeric value.
-- `PUT http://localhost:7437/sheep`: Add a sheep to the current counter and return the new `nbsheep` value in the response as a json
-- `DELETE http://localhost:7437/sheep`: Reset the sheep counter to 0 and return the new `nbsheep` value in the response as a json
+### Install and Build
 
-### File upload
+The easiest way to install and build is to copy the install.sh script to the location you wish to build (with an Internet connection), and run it.  The script should download and install all dependencies and build the executable file.
+```bash
+$ sh install.sh
+```
 
-Open in your browser the url [http://localhost:7437/static/upload.html](http://localhost:7437/static/upload.html), there upload a file, preferably not a big one, then click on the `Upload File` button.
+### Required Files
 
-The API endpoint is the following:
+To run the code, you will need to copy the compiled file and the static folder to your desired location.
+```bash
+$ cp ./webui_app $(dest_folder)
+$ cp -r ./static $(dest_folder)
+```
 
-- `http://localhost:7437/upload`: upload a file and show informations about it in the response.
+### Run
 
-### Form POST
-
-Open in your browser the url [http://localhost:7437/static/form.html](http://localhost:7437/static/form.html), there enter values in the input, then click on the `send form` button. The console will display the form parameters.
-
-The API endpoint is the following:
-
-- `http://localhost:7437/static/submit`: submit a form and show informations about it in the response.
+```bash
+$ ./webui_app
+```
