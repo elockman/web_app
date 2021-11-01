@@ -25,25 +25,31 @@
 #if RELEASE_BUILD==1
   #define DEBUG_LVL 0
   #define PORT 80
+  #define WWW_PATH "/user-data/xsite/webui/www/"
   #define CONFIG_FILE "/user-data/profile/config/config.json"
-  #define STATIC_PATH "/user-data/xsite/webui/static/"
+  #define VERSIONS_FILE "/user-data/profile/config/versions.json"
+  #define STATIC_FILE "/user-data/profile/config/static.json"
   #define GPIO_ENABLE 1
   #define ADC_ENABLE 0
   #define JSON_ENABLE 1
 #elif DEV_BUILD==1
   #define DEBUG_LVL 1
   #define PORT 8080
+  #define WWW_PATH "./www/"
+  //#define WWW_PATH "/test/ulfius/example_programs/webui_app/www/"
   #define CONFIG_FILE "config.json"
-  #define STATIC_PATH "./static/"
-  //#define STATIC_PATH "/test/ulfius/example_programs/webui_app/static/"
+  #define VERSIONS_FILE "versions.json"
+  #define STATIC_FILE "static.json"
   #define GPIO_ENABLE 1
   #define ADC_ENABLE 0
   #define JSON_ENABLE 1
 #elif LOCAL_PC_BUILD==1
   #define DEBUG_LVL 1
   #define PORT 8080
+  #define WWW_PATH "./www/"
   #define CONFIG_FILE "config.json"
-  #define STATIC_PATH "./static/"
+  #define VERSIONS_FILE "versions.json"
+  #define STATIC_FILE "static.json"
   #define GPIO_ENABLE 0
   #define ADC_ENABLE 0
   #define JSON_ENABLE 1
@@ -411,6 +417,124 @@ void write_config_param(char* group, char* param, char* value)
     cJSON_Delete(root);
   }
 }
+
+bool read_version_param(char* param, char* value)
+{
+  bool retval = false;
+  FILE* fp = fopen(VERSIONS_FILE, "r");
+  char buf[4096] = {0};
+  char group[10];
+  sprintf(group, "versions");
+  fread(buf, 1, sizeof(buf), fp);
+  fclose(fp);
+  cJSON* root = cJSON_Parse(buf);
+  
+  cJSON* conf_obj = cJSON_GetObjectItem(root, "configuration");
+  if(conf_obj){
+    cJSON* group_obj = cJSON_GetObjectItem(conf_obj, group);
+    cJSON* group_param = cJSON_GetObjectItem(group_obj, param);
+    sprintf(value, "%s", cJSON_GetStringValue(group_param));
+  }
+  cJSON_Delete(root);
+
+#if DEBUG_LVL >= 1
+  printf("read_version_param: config/%s/%s = %s\n", group, param, value);
+#endif
+
+  return retval;
+}
+
+void write_version_param(char* param, char* value)
+{
+  FILE *fp = NULL;
+  fp = fopen(VERSIONS_FILE, "r");
+  char buf[4096] = {0};
+  char *out;
+  char group[10];
+  sprintf(group, "versions");
+  fread(buf, 1, sizeof(buf), fp);
+  fclose(fp);
+  cJSON* root = cJSON_Parse(buf);
+  out = cJSON_Print(root);
+
+  cJSON* conf_obj = cJSON_GetObjectItem(root, "configuration");
+  if(conf_obj){
+    cJSON* group_obj = cJSON_GetObjectItem(conf_obj, group);
+    cJSON* group_param = cJSON_GetObjectItem(group_obj, param);
+    cJSON_SetValuestring(group_param, value);
+    out = cJSON_Print(root);
+
+    fp = fopen(VERSIONS_FILE,"w");
+    if(fp == NULL) {
+      fprintf(stderr,"open file failed\n");
+      return;
+    }
+    fprintf(fp,"%s",out);
+    fclose(fp);
+    free(out);
+    cJSON_Delete(root);
+  }
+}
+
+
+bool read_static_param(char* param, char* value)
+{
+  bool retval = false;
+  FILE* fp = fopen(STATIC_FILE, "r");
+  char buf[4096] = {0};
+  char group[8];
+  sprintf(group, "static");
+  fread(buf, 1, sizeof(buf), fp);
+  fclose(fp);
+  cJSON* root = cJSON_Parse(buf);
+  
+  cJSON* conf_obj = cJSON_GetObjectItem(root, "configuration");
+  if(conf_obj){
+    cJSON* group_obj = cJSON_GetObjectItem(conf_obj, group);
+    cJSON* group_param = cJSON_GetObjectItem(group_obj, param);
+    sprintf(value, "%s", cJSON_GetStringValue(group_param));
+  }
+  cJSON_Delete(root);
+
+#if DEBUG_LVL >= 1
+  printf("read_static_param: config/%s/%s = %s\n", group, param, value);
+#endif
+
+  return retval;
+}
+
+void write_static_param(char* param, char* value)
+{
+  FILE *fp = NULL;
+  fp = fopen(STATIC_FILE, "r");
+  char buf[4096] = {0};
+  char *out;
+  char group[8];
+  sprintf(group, "static");
+  fread(buf, 1, sizeof(buf), fp);
+  fclose(fp);
+  cJSON* root = cJSON_Parse(buf);
+  out = cJSON_Print(root);
+
+  cJSON* conf_obj = cJSON_GetObjectItem(root, "configuration");
+  if(conf_obj){
+    cJSON* group_obj = cJSON_GetObjectItem(conf_obj, group);
+    cJSON* group_param = cJSON_GetObjectItem(group_obj, param);
+    cJSON_SetValuestring(group_param, value);
+    out = cJSON_Print(root);
+
+    fp = fopen(STATIC_FILE,"w");
+    if(fp == NULL) {
+      fprintf(stderr,"open file failed\n");
+      return;
+    }
+    fprintf(fp,"%s",out);
+    fclose(fp);
+    free(out);
+    cJSON_Delete(root);
+  }
+}
+
 #endif
 
 
@@ -664,11 +788,93 @@ int callback_write_config_param (const struct _u_request * request, struct _u_re
 }
 
 /**
+ * Read config param from config.json file
+ * URL format:   http://localhost:80/cfg?param=yyy
+ * returns { param : "value"}
+ */
+int callback_read_version_param (const struct _u_request * request, struct _u_response * response, void * user_data) {
+  char param[24];
+  char value[24];
+
+  sprintf(param, "%s", u_map_get(request->map_url, "param"));
+  read_version_param(param, value);
+
+  char resp_body[256];
+  sprintf(resp_body, "{\"%s\":\"%s\"}", param, value);
+  cJSON* resp_json = cJSON_Parse(resp_body);
+  set_cjson_body_response(response, 200, resp_json);
+  
+  return U_CALLBACK_CONTINUE;
+}
+
+/**
+ * Write config param to config.json file
+ * URL format:   http://localhost:8080/ver_set?param=yyy&value=zzz
+ * returns { param : "value"}
+ */
+int callback_write_version_param (const struct _u_request * request, struct _u_response * response, void * user_data) {
+  char param[24];
+  char value[24];
+
+  sprintf(param, "%s", u_map_get(request->map_url, "param"));
+  sprintf(value, "%s", u_map_get(request->map_url, "value"));
+  write_version_param(param, value);
+
+  char resp_body[256];
+  sprintf(resp_body, "{\"%s\":\"%s\"}", param, value);
+  cJSON* resp_json = cJSON_Parse(resp_body);
+  set_cjson_body_response(response, 200, resp_json);
+
+  return U_CALLBACK_CONTINUE;
+}
+
+/**
+ * Read config param from config.json file
+ * URL format:   http://localhost:80/stat?param=yyy
+ * returns { param : "value"}
+ */
+int callback_read_static_param (const struct _u_request * request, struct _u_response * response, void * user_data) {
+  char param[24];
+  char value[24];
+
+  sprintf(param, "%s", u_map_get(request->map_url, "param"));
+  read_static_param(param, value);
+
+  char resp_body[256];
+  sprintf(resp_body, "{\"%s\":\"%s\"}", param, value);
+  cJSON* resp_json = cJSON_Parse(resp_body);
+  set_cjson_body_response(response, 200, resp_json);
+  
+  return U_CALLBACK_CONTINUE;
+}
+
+/**
+ * Write config param to config.json file
+ * URL format:   http://localhost:8080/stat_set?param=yyy&value=zzz
+ * returns { param : "value"}
+ */
+int callback_write_static_param (const struct _u_request * request, struct _u_response * response, void * user_data) {
+  char param[24];
+  char value[24];
+
+  sprintf(param, "%s", u_map_get(request->map_url, "param"));
+  sprintf(value, "%s", u_map_get(request->map_url, "value"));
+  write_static_param(param, value);
+
+  char resp_body[256];
+  sprintf(resp_body, "{\"%s\":\"%s\"}", param, value);
+  cJSON* resp_json = cJSON_Parse(resp_body);
+  set_cjson_body_response(response, 200, resp_json);
+
+  return U_CALLBACK_CONTINUE;
+}
+
+/**
  * info page
  */
 static int callback_info_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "info.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -688,7 +894,7 @@ static int callback_info_page (const struct _u_request * request, struct _u_resp
  */
 static int callback_control_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "control.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -708,7 +914,7 @@ static int callback_control_page (const struct _u_request * request, struct _u_r
  */
 static int callback_config_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "config.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -728,7 +934,7 @@ static int callback_config_page (const struct _u_request * request, struct _u_re
  */
 static int callback_admin_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "admin.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -748,7 +954,7 @@ static int callback_admin_page (const struct _u_request * request, struct _u_res
  */
 static int callback_neighbors_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "neighbors.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -768,7 +974,7 @@ static int callback_neighbors_page (const struct _u_request * request, struct _u
  */
 static int callback_sensors_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "sensors.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -788,7 +994,7 @@ static int callback_sensors_page (const struct _u_request * request, struct _u_r
  */
 static int callback_logging_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "logging.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -808,7 +1014,7 @@ static int callback_logging_page (const struct _u_request * request, struct _u_r
  */
 static int callback_login_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "login.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -828,7 +1034,7 @@ static int callback_login_page (const struct _u_request * request, struct _u_res
  */
 static int callback_logout_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "logout.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -848,7 +1054,7 @@ static int callback_logout_page (const struct _u_request * request, struct _u_re
  */
 static int callback_test_page (const struct _u_request * request, struct _u_response * response, void * user_data) {
   char buf[PAGE_SIZE] = {0};
-  char path[] = STATIC_PATH;
+  char path[] = WWW_PATH;
   char filename[] = "test.html";
   strcat(path, filename);
 #if DEBUG_LVL >= 1
@@ -917,6 +1123,10 @@ int main (int argc, char **argv) {
     ulfius_add_endpoint_by_val(&instance, "GET", "/adc", NULL, 1, &callback_adc_control, NULL);
     ulfius_add_endpoint_by_val(&instance, "GET", "/cfg", NULL, 1, &callback_read_config_param, NULL);
     ulfius_add_endpoint_by_val(&instance, "GET", "/cfg_set", NULL, 1, &callback_write_config_param, NULL);
+    ulfius_add_endpoint_by_val(&instance, "GET", "/ver", NULL, 1, &callback_read_version_param, NULL);
+    ulfius_add_endpoint_by_val(&instance, "GET", "/ver_set", NULL, 1, &callback_write_version_param, NULL);
+    ulfius_add_endpoint_by_val(&instance, "GET", "/stat", NULL, 1, &callback_read_static_param, NULL);
+    ulfius_add_endpoint_by_val(&instance, "GET", "/stat_set", NULL, 1, &callback_write_static_param, NULL);
     
     // Start the framework
     if (ulfius_start_framework(&instance) == U_OK) {

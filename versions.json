@@ -1,0 +1,14 @@
+{
+    "configuration":{
+        "version":{
+            "config":0.1
+        },
+        "versions":{
+            "linux":"None",
+            "build":"None",
+            "app":"None",
+            "webui":"None",
+            "hardware":"None"
+        }
+    }
+}

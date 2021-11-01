@@ -1,0 +1,13 @@
+{
+    "configuration":{
+        "version":{
+            "config":0.1
+        },
+        "static":{
+            "uuid":"None",
+            "mac":"None",
+            "hw_type":"None",
+            "install_date":"None"
+        }
+    }
+}

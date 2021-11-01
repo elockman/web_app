@@ -43,7 +43,7 @@
 <p> Function: <var id="fc"></var></p>
 <p> Name: <var id="nm"></var></p>
 
-<!--<h3>Versions</h3>
+<h3>Versions</h3>
 <p> Kernel: <var id="kern"></var></p>
 <p> Build: <var id="bild"></var></p>
 <p> Logic: <var id="app"></var></p>
@@ -54,7 +54,7 @@
 <p> Part: <var id="part"></var></p>
 <p> UUID: <var id="uuid"></var></p>
 <p> MAC: <var id="mac"></var></p>
-<p> Install: <var id="inst"></var></p>-->
+<p> Install: <var id="inst"></var></p>
 
 
 
@@ -154,6 +154,44 @@ async function readConfig() {
   .then(data => { document.getElementById('nm').innerHTML = JSON.stringify(data.name); })
 
 
+  await fetch('/ver?param=linux')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('kern').innerHTML = JSON.stringify(data.linux); })
+
+  await fetch('/ver?param=build')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('bild').innerHTML = JSON.stringify(data.build); })
+
+  await fetch('/ver?param=app')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('app').innerHTML = JSON.stringify(data.app); })
+
+  await fetch('/ver?param=webui')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('web').innerHTML = JSON.stringify(data.webui); })
+
+  await fetch('/ver?param=hardware')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('hw').innerHTML = JSON.stringify(data.hardware); })
+
+
+  await fetch('/stat?param=hw_type')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('part').innerHTML = JSON.stringify(data.hw_type); })
+
+  await fetch('/stat?param=uuid')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('uuid').innerHTML = JSON.stringify(data.uuid); })
+
+  await fetch('/stat?param=mac')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('mac').innerHTML = JSON.stringify(data.mac); })
+
+  await fetch('/stat?param=install_date')
+  .then(response => { return response.json(); })
+  .then(data => { document.getElementById('inst').innerHTML = JSON.stringify(data.install_date); })
+
+  
   document.getElementById('pw1').innerHTML = '********';
   document.getElementById('pw2').innerHTML = '********';
 }
